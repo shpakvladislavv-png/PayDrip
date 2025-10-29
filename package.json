@@ -4,13 +4,17 @@
   "private": true,
   "license": "MIT",
   "description": "Upgradeable payment streaming protocol template for Base (Base Mainnet & Base Sepolia) — Hardhat + OpenZeppelin UUPS + GitHub Actions CI/CD.",
-  "type": "module",
   "scripts": {
     "build": "tsc -p .",
     "lint": "eslint . && solhint 'contracts/**/*.sol'",
     "format": "prettier --write .",
     "test": "hardhat test",
     "compile": "hardhat compile"
+  },
+  "ts-node": {
+    "compilerOptions": {
+      "module": "commonjs"
+    }
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
