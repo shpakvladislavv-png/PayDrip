@@ -1,30 +1,34 @@
-import { ethers, upgrades, run, network } from "hardhat";
+import hre from "hardhat";
 import fs from "fs";
 import path from "path";
 
 async function main() {
+  const { ethers, upgrades, run, network } = hre;
   const [deployer] = await ethers.getSigners();
+
   console.log("Deployer:", deployer.address);
   console.log("Network:", network.name);
 
   const PayDrip = await ethers.getContractFactory("PayDrip");
   const proxy = await upgrades.deployProxy(PayDrip, [deployer.address], {
     kind: "uups",
-    initializer: "initialize"
+    initializer: "initialize",
   });
   await proxy.waitForDeployment();
 
   const proxyAddress = await proxy.getAddress();
-  const implementationAddress = await upgrades.erc1967.getImplementationAddress(proxyAddress);
+  const implementationAddress = await upgrades.erc1967.getImplementationAddress(
+    proxyAddress
+  );
 
   console.log("PayDrip proxy:", proxyAddress);
   console.log("PayDrip implementation:", implementationAddress);
 
-   
+  // Try Basescan verification (implementation)
   try {
     await run("verify:verify", {
       address: implementationAddress,
-      constructorArguments: []
+      constructorArguments: [],
     });
     console.log("Verified implementation on Basescan");
   } catch (e: unknown) {
@@ -32,7 +36,7 @@ async function main() {
     console.log("Verification skipped/failed:", msg);
   }
 
-
+  // Persist deployment summary
   const outDir = path.join(process.cwd(), "deployments");
   if (!fs.existsSync(outDir)) fs.mkdirSync(outDir);
   const outfile = path.join(outDir, `${network.name}.json`);
@@ -42,7 +46,7 @@ async function main() {
     implementation: implementationAddress,
     deployer: deployer.address,
     commit: process.env.GITHUB_SHA || null,
-    timestamp: Math.floor(Date.now() / 1000)
+    timestamp: Math.floor(Date.now() / 1000),
   };
   fs.writeFileSync(outfile, JSON.stringify(payload, null, 2));
   console.log("Wrote", outfile);
