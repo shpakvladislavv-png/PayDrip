@@ -1,19 +1,29 @@
 import { expect } from "chai";
-import { ethers, upgrades } from "hardhat";
+import hre from "hardhat";
 
 describe("PayDrip", function () {
   it("initializes and drips", async function () {
+    const { ethers, upgrades } = hre;
     const [owner, alice] = await ethers.getSigners();
+
     const PayDrip = await ethers.getContractFactory("PayDrip");
     const drip = await upgrades.deployProxy(PayDrip, [owner.address], {
       kind: "uups",
-      initializer: "initialize"
+      initializer: "initialize",
     });
 
     await drip.waitForDeployment();
 
-    await owner.sendTransaction({ to: await drip.getAddress(), value: ethers.parseEther("1") });
+    // fund
+    await owner.sendTransaction({
+      to: await drip.getAddress(),
+      value: ethers.parseEther("1"),
+    });
+
+    // set rate for alice
     await (await drip.connect(owner).setRate(alice.address, 1000n)).wait();
+
+    // move time forward
     await ethers.provider.send("evm_increaseTime", [10]);
     await ethers.provider.send("evm_mine", []);
 
