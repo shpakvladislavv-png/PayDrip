@@ -20,15 +20,18 @@ async function main() {
   console.log("PayDrip proxy:", proxyAddress);
   console.log("PayDrip implementation:", implementationAddress);
 
+   
   try {
     await run("verify:verify", {
       address: implementationAddress,
       constructorArguments: []
     });
     console.log("Verified implementation on Basescan");
-  } catch (e: any) {
-    console.log("Verification skipped/failed:", e.message || e.toString());
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.log("Verification skipped/failed:", msg);
   }
+
 
   const outDir = path.join(process.cwd(), "deployments");
   if (!fs.existsSync(outDir)) fs.mkdirSync(outDir);
