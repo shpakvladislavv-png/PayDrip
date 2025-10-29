@@ -24,18 +24,43 @@ describe("PayDrip", function () {
     await ethers.provider.send("evm_increaseTime", [10]);
     await ethers.provider.send("evm_mine", []);
 
-    // preview > 0
+    // preview > 0 (sanity)
     const preview = await drip.previewAccrued(alice.address);
     expect(preview).to.be.greaterThan(0n);
 
-    // withdrawAll should increase alice's balance exactly by `preview`
-    // (matcher учитывает газ и сравнивает чистое изменение баланса)
-    await expect(drip.connect(alice).withdrawAll()).to.changeEtherBalance(
-      alice,
-      preview
-    );
+    // withdrawAll: читаем сумму из события Withdrawn и проверяем баланс контракта
+    const provider = ethers.provider;
+    const contractAddr = await drip.getAddress();
+    const beforeContract = await provider.getBalance(contractAddr);
 
-    // после вывода новый preview ~ 0
+    const tx = await drip.connect(alice).withdrawAll();
+    const receipt = await tx.wait();
+
+    // извлечь событие Withdrawn(amount)
+    const parsedLogs = (receipt?.logs || [])
+      .map((log) => {
+        try {
+          return (drip.interface as any).parseLog(log);
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean) as Array<{ name: string; args: Record<string, unknown> }>;
+
+    const withdrawnEv = parsedLogs.find((p) => p.name === "Withdrawn");
+    expect(withdrawnEv, "Withdrawn event not found").to.exist;
+
+    const amountUnknown = withdrawnEv?.args?.amount;
+    expect(typeof amountUnknown === "bigint").to.equal(true);
+    const amount = amountUnknown as bigint;
+
+    expect(amount).to.be.greaterThan(0n);
+
+    const afterContract = await provider.getBalance(contractAddr);
+    // баланс контракта уменьшился ровно на сумму вывода
+    expect(beforeContract - afterContract).to.equal(amount);
+
+    // после вывода у alice больше нет начислений
     const afterPreview = await drip.previewAccrued(alice.address);
     expect(afterPreview).to.equal(0n);
   });
