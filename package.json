@@ -6,7 +6,7 @@
   "description": "Upgradeable payment streaming protocol template for Base (Base Mainnet & Base Sepolia) — Hardhat + OpenZeppelin UUPS + GitHub Actions CI/CD.",
   "scripts": {
     "build": "tsc -p .",
-    "lint": "eslint . && solhint 'contracts/**/*.sol'",
+    "lint": "eslint '**/*.{js,ts}' --ignore-path .gitignore && solhint 'contracts/**/*.sol'",
     "format": "prettier --write .",
     "test": "hardhat test",
     "compile": "hardhat compile"
