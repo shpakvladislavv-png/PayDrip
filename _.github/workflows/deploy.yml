@@ -1,0 +1,60 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      network:
+        description: "Network to deploy to"
+        required: true
+        default: "baseSepolia"
+        type: choice
+        options: [baseSepolia, baseMainnet]
+      ref:
+        description: "Git ref (branch or tag) to deploy"
+        required: false
+  push:
+    tags:
+      - "release-*"
+
+jobs:
+  deploy:
+    name: Deploy to ${{ inputs.network || 'baseMainnet' }}
+    runs-on: ubuntu-latest
+    env:
+      SELECTED_NETWORK: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/release-') && 'baseMainnet' || inputs.network }}
+    environment: ${{ env.SELECTED_NETWORK == 'baseMainnet' ? 'base-mainnet' : 'base-sepolia' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - name: Install
+        run: npm install
+      - name: Compile
+        run: npx hardhat compile
+      - name: Lint
+        run: npm run lint
+      - name: Create .env from environment secrets
+        run: |
+          echo "PRIVATE_KEY=${{ secrets.PRIVATE_KEY }}" >> .env
+          echo "ETHERSCAN_API_KEY=${{ secrets.ETHERSCAN_API_KEY }}" >> .env
+          if [ "${{ env.SELECTED_NETWORK }}" = "baseMainnet" ]; then
+            echo "BASE_MAINNET_RPC_URL=${{ secrets.BASE_MAINNET_RPC_URL }}" >> .env
+          else
+            echo "BASE_SEPOLIA_RPC_URL=${{ secrets.BASE_SEPOLIA_RPC_URL }}" >> .env
+          fi
+      - name: Deploy
+        run: |
+          set -e
+          echo "Deploying to ${SELECTED_NETWORK}..."
+          npx hardhat run scripts/deploy.ts --network ${SELECTED_NETWORK} | tee deploy.log
+      - name: Upload deployment artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: paydrip-${{ env.SELECTED_NETWORK }}-${{ github.sha }}
+          path: |
+            deployments/${{ env.SELECTED_NETWORK }}*.json
+            deploy.log
