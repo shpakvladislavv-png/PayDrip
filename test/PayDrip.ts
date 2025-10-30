@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import hre from "hardhat";
+import type { Interface, Log, LogDescription } from "ethers";
 
 describe("PayDrip", function () {
   it("initializes and drips", async function () {
@@ -24,43 +25,43 @@ describe("PayDrip", function () {
     await ethers.provider.send("evm_increaseTime", [10]);
     await ethers.provider.send("evm_mine", []);
 
-    // preview > 0 (sanity)
+    // sanity: preview > 0
     const preview = await drip.previewAccrued(alice.address);
     expect(preview).to.be.greaterThan(0n);
 
-    // withdrawAll: читаем сумму из события Withdrawn и проверяем баланс контракта
-    const provider = ethers.provider;
+    // prepare parsing helpers
+    const iface: Interface = PayDrip.interface;
     const contractAddr = await drip.getAddress();
+    const provider = ethers.provider;
+
     const beforeContract = await provider.getBalance(contractAddr);
 
     const tx = await drip.connect(alice).withdrawAll();
     const receipt = await tx.wait();
 
-    // извлечь событие Withdrawn(amount)
-    const parsedLogs = (receipt?.logs || [])
+    // parse Withdrawn event in a typesafe way
+    const parsed: LogDescription[] = (receipt?.logs ?? [])
       .map((log) => {
         try {
-          return (drip.interface as any).parseLog(log);
+          return iface.parseLog(log as Log);
         } catch {
-          return null;
+          return null as unknown as LogDescription;
         }
       })
-      .filter(Boolean) as Array<{ name: string; args: Record<string, unknown> }>;
+      .filter((x): x is LogDescription => Boolean(x));
 
-    const withdrawnEv = parsedLogs.find((p) => p.name === "Withdrawn");
-    expect(withdrawnEv, "Withdrawn event not found").to.exist;
+    const withdrawn = parsed.find((ev) => ev.name === "Withdrawn");
+    expect(withdrawn, "Withdrawn event not found").to.exist;
 
-    const amountUnknown = withdrawnEv?.args?.amount;
-    expect(typeof amountUnknown === "bigint").to.equal(true);
-    const amount = amountUnknown as bigint;
-
+    const amount = withdrawn!.args.amount as bigint;
     expect(amount).to.be.greaterThan(0n);
 
     const afterContract = await provider.getBalance(contractAddr);
-    // баланс контракта уменьшился ровно на сумму вывода
+
+    // контракт отдал ровно amount
     expect(beforeContract - afterContract).to.equal(amount);
 
-    // после вывода у alice больше нет начислений
+    // после вывода начислений нет
     const afterPreview = await drip.previewAccrued(alice.address);
     expect(afterPreview).to.equal(0n);
   });
