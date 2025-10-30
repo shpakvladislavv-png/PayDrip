@@ -1,0 +1,11 @@
+{
+  "network": "baseSepolia",
+  "proxy": "0x527fE59F9732283E6C84Aa7BCf47882EfE89AC41",
+  "implementation": "0xc1E269469c0D916B600840847C3193c0e3601A1f",
+  "admin": "0x0000000000000000000000000000000000000000",
+  "deployer": "0x59daA17673EFc0bECdC8819E69830B994Fe497fB",
+  "txHashProxy": "0x9442795319a4ef42aed7ff37fd48be9de27fded8a9728897c1e79a67a86a3b02",
+  "commit": "5f15fd4d4277c9b91af15e2fd658a0d7b0318253",
+  "timestamp": 1761819756,
+  "explorer": "https://sepolia.basescan.org"
+}
