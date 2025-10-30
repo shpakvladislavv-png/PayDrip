@@ -13,7 +13,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          # cache: 'npm'   # ← убрали кэш, так как нет lock-файла
+          cache: npm
+          cache-dependency-path: package-lock.json
       - name: Install
         run: npm install
       - name: Compile
