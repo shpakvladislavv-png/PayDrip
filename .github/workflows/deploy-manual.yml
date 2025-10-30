@@ -1,0 +1,71 @@
+name: Deploy (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      network:
+        description: "Network to deploy to"
+        required: true
+        default: baseSepolia
+        type: choice
+        options:
+          - baseSepolia
+          - baseMainnet
+      ref:
+        description: "Git ref (branch or tag) to deploy"
+        required: false
+
+jobs:
+  deploy:
+    name: Deploy to ${{ inputs.network }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.network == 'baseMainnet' && 'base-mainnet' || 'base-sepolia' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Cache npm
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json', '**/package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
+      - name: Install
+        run: npm install
+
+      - name: Compile
+        run: npx hardhat compile
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Create .env from secrets
+        run: |
+          echo "PRIVATE_KEY=${{ secrets.PRIVATE_KEY }}" >> .env
+          echo "ETHERSCAN_API_KEY=${{ secrets.ETHERSCAN_API_KEY }}" >> .env
+          if [ "${{ inputs.network }}" = "baseMainnet" ]; then
+            echo "BASE_MAINNET_RPC_URL=${{ secrets.BASE_MAINNET_RPC_URL }}" >> .env
+          else
+            echo "BASE_SEPOLIA_RPC_URL=${{ secrets.BASE_SEPOLIA_RPC_URL }}" >> .env
+          fi
+
+      - name: Deploy
+        run: |
+          set -e
+          echo "Deploying to ${{ inputs.network }}..."
+          npx hardhat run scripts/deploy.ts --network ${{ inputs.network }} | tee deploy.log
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: paydrip-${{ inputs.network }}-${{ github.sha }}
+          path: |
+            deployments/${{ inputs.network }}*.json
+            deploy.log
