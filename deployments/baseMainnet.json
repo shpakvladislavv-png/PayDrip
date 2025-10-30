@@ -1,0 +1,11 @@
+{
+  "network": "baseMainnet",
+  "proxy": "0xB7fB1434d757C91F59C02879EF616129240A9437",
+  "implementation": "0xd23327f19def48b0d15BFc581D3A0a0Ddba04ab8",
+  "admin": "0x0000000000000000000000000000000000000000",
+  "deployer": "0x59daA17673EFc0bECdC8819E69830B994Fe497fB",
+  "txHashProxy": "0x682b5bb24165e3b147dbcef43832cb07e157087eb37c133cc6eefe3776f13557",
+  "commit": "5f15fd4d4277c9b91af15e2fd658a0d7b0318253",
+  "timestamp": 1761819889,
+  "explorer": "https://basescan.org"
+}```
