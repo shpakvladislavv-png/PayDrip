@@ -59,8 +59,18 @@ jobs:
       - name: Deploy
         run: |
           set -e
-          echo "Deploying to ${{ inputs.network }}..."
           npx hardhat run scripts/deploy.ts --network ${{ inputs.network }} | tee deploy.log
+
+      - name: Append summary
+        run: |
+          echo "### Deployment summary" >> $GITHUB_STEP_SUMMARY
+          if [ -f deployments/${{ inputs.network }}.json ]; then
+            echo "\`\`\`json" >> $GITHUB_STEP_SUMMARY
+            cat deployments/${{ inputs.network }}.json >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "_deployments JSON not found_" >> $GITHUB_STEP_SUMMARY
+          fi
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
