@@ -1,6 +1,7 @@
 name: Deploy
 
 on:
+  # 👇 этот блок даёт кнопку "Run workflow" в UI
   workflow_dispatch:
     inputs:
       network:
@@ -8,10 +9,13 @@ on:
         required: true
         default: "baseSepolia"
         type: choice
-        options: [baseSepolia, baseMainnet]
+        options:
+          - baseSepolia
+          - baseMainnet
       ref:
         description: "Git ref (branch or tag) to deploy"
         required: false
+
   push:
     tags:
       - "release-*"
@@ -32,7 +36,6 @@ jobs:
         with:
           node-version: 20
 
-      
       - name: Cache npm
         uses: actions/cache@v4
         with:
@@ -41,16 +44,16 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-npm-
 
-      - name: Install
+      - name: Install dependencies
         run: npm install
 
-      - name: Compile
+      - name: Compile contracts
         run: npx hardhat compile
 
       - name: Lint
         run: npm run lint
 
-      - name: Create .env from environment secrets
+      - name: Create .env from secrets
         run: |
           echo "PRIVATE_KEY=${{ secrets.PRIVATE_KEY }}" >> .env
           echo "ETHERSCAN_API_KEY=${{ secrets.ETHERSCAN_API_KEY }}" >> .env
@@ -60,7 +63,7 @@ jobs:
             echo "BASE_SEPOLIA_RPC_URL=${{ secrets.BASE_SEPOLIA_RPC_URL }}" >> .env
           fi
 
-      - name: Deploy
+      - name: Deploy to selected network
         run: |
           set -e
           echo "Deploying to ${SELECTED_NETWORK}..."
