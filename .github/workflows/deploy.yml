@@ -1,7 +1,7 @@
 name: Deploy
 
 on:
-  # 👇 этот блок даёт кнопку "Run workflow" в UI
+  
   workflow_dispatch:
     inputs:
       network:
